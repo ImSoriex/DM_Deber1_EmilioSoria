@@ -103,9 +103,9 @@ default:
   REDSHIFT_CLUSTER_ID: redshift_cluster_id
   REDSHIFT_IAM_PROFILE: default
   # Snowflake
-  SNOWFLAKE_USER: username
-  SNOWFLAKE_PASSWORD: password
-  SNOWFLAKE_ACCOUNT: account_id.region
+  SNOWFLAKE_USER: {{ mage_secret_var('<sf_user>') }}
+  SNOWFLAKE_PASSWORD: {{ mage_secret_var('<sf_password>') }}
+  SNOWFLAKE_ACCOUNT: {{ mage_secret_var('sf_account') }}
   SNOWFLAKE_DEFAULT_WH: null                  # Optional default warehouse
   SNOWFLAKE_DEFAULT_DB: null                  # Optional default database
   SNOWFLAKE_DEFAULT_SCHEMA: null              # Optional default schema

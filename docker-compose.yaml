@@ -1,0 +1,38 @@
+services:
+  warehouse:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=source
+    volumes:
+      - "./warehouse_data:/var/lib/postgresql/data:rw"
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d source"]
+      interval: 1m30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  warehouseui:
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "8080:80"
+
+  scheduler:
+    image: mageai/mageai
+    volumes:
+      - "./scheduler_data:/home/src:rw"
+    ports:
+      - "6789:6789"
+    command: /app/run_app.sh mage start scheduler
+
+volumes:
+  pgadmin_data: {}

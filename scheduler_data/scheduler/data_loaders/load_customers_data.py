@@ -13,6 +13,11 @@ if "data_loader" not in globals():
 TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer"
 
 
+def log(msg: str) -> None:
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{ts} UTC] {msg}")
+
+
 def get_base_url() -> str:
     env = get_secret_value("qbo_env")
     if str(env).lower() == "sandbox":
@@ -25,6 +30,7 @@ def get_access_token() -> str:
     client_secret = get_secret_value("qbo_client_secret")
     refresh_token = get_secret_value("qbo_refresh_token")
 
+    log("Pidiendo access token a Intuit...")
     response = requests.post(
         TOKEN_URL,
         auth=requests.auth.HTTPBasicAuth(client_id, client_secret),
@@ -32,6 +38,7 @@ def get_access_token() -> str:
         timeout=30,
     )
     response.raise_for_status()
+    log("Access token obtenido.")
     return response.json()["access_token"]
 
 
@@ -45,7 +52,9 @@ def request_get_with_retries(
         r = requests.get(url, headers=headers, params=params, timeout=60)
 
         if r.status_code in (429, 500, 502, 503, 504):
-            time.sleep(2 ** attempt)
+            wait_s = 2 ** attempt
+            log(f"HTTP {r.status_code}. Reintento {attempt + 1}/{max_retries} en {wait_s}s...")
+            time.sleep(wait_s)
             continue
 
         r.raise_for_status()
@@ -86,6 +95,8 @@ def fetch_customers_window(
     start_str = format_qb_datetime(start_dt)
     end_str = format_qb_datetime(end_dt)
 
+    log(f"Extrayendo ventana: {start_str} -> {end_str}")
+
     start_position = 1
     page_number = 1
     rows: List[Dict[str, Any]] = []
@@ -102,11 +113,16 @@ def fetch_customers_window(
         data = request_get_with_retries(url, headers, params)
 
         if "Fault" in data:
+            log("QuickBooks respondió con 'Fault'. Se omite esta ventana.")
             break
 
         customers = data.get("QueryResponse", {}).get("Customer", [])
         if not customers:
+            if page_number == 1:
+                log("Ventana sin resultados.")
             break
+
+        log(f"  Página {page_number}: {len(customers)} customers")
 
         request_payload = {"query": query, "minorversion": minor_version}
 
@@ -130,6 +146,7 @@ def fetch_customers_window(
         page_number += 1
         time.sleep(0.3)
 
+    log(f"Ventana terminada. Filas acumuladas: {len(rows)}")
     return rows
 
 
@@ -145,14 +162,19 @@ def load_data(*args, **kwargs) -> pd.DataFrame:
     start_utc = datetime.fromisoformat(fecha_inicio.replace("Z", "+00:00")).astimezone(timezone.utc)
     end_utc = datetime.fromisoformat(fecha_fin.replace("Z", "+00:00")).astimezone(timezone.utc)
 
+    log("Inicio Extract Customers")
+    log(f"Rango: {fecha_inicio} -> {fecha_fin} | chunk_days={chunk_days}")
+
     realm_id = get_secret_value("qbo_realm_id")
     base_url = get_base_url()
     access_token = get_access_token()
 
     windows = split_date_range(start_utc, end_utc, chunk_days)
+    log(f"Total ventanas a procesar: {len(windows)}")
 
     all_rows: List[Dict[str, Any]] = []
-    for w_start, w_end in windows:
+    for i, (w_start, w_end) in enumerate(windows, start=1):
+        log(f"Procesando ventana {i}/{len(windows)}")
         all_rows.extend(
             fetch_customers_window(
                 realm_id=realm_id,
@@ -164,7 +186,5 @@ def load_data(*args, **kwargs) -> pd.DataFrame:
         )
 
     df = pd.DataFrame(all_rows)
-    #print(df.shape)
-    #print(df.columns)
-    #print(df.head(5))
+    log(f"Extract terminado. Total filas: {len(df)}")
     return df

@@ -1,4 +1,56 @@
-blocks: []
+blocks:
+- all_upstream_blocks_executed: true
+  color: null
+  configuration:
+    file_path: data_loaders/load_invoices_data.py
+    file_source:
+      path: data_loaders/load_invoices_data.py
+  downstream_blocks:
+  - transform_invoices_data
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: load_invoices_data
+  retry_config: null
+  status: updated
+  timeout: null
+  type: data_loader
+  upstream_blocks: []
+  uuid: load_invoices_data
+- all_upstream_blocks_executed: false
+  color: null
+  configuration: {}
+  downstream_blocks:
+  - export_invoices_data
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: transform_invoices_data
+  retry_config: null
+  status: updated
+  timeout: null
+  type: transformer
+  upstream_blocks:
+  - load_invoices_data
+  uuid: transform_invoices_data
+- all_upstream_blocks_executed: false
+  color: null
+  configuration: {}
+  downstream_blocks: []
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: export_invoices_data
+  retry_config: null
+  status: updated
+  timeout: null
+  type: data_exporter
+  upstream_blocks:
+  - transform_invoices_data
+  uuid: export_invoices_data
 cache_block_output_in_memory: false
 callbacks: []
 concurrency_config: {}

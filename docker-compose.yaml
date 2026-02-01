@@ -22,7 +22,7 @@ services:
       - PGADMIN_DEFAULT_EMAIL=admin@admin.com
       - PGADMIN_DEFAULT_PASSWORD=admin
     volumes:
-      - pgadmin_data:/var/lib/pgadmin
+      - ./warehouse_ui_data:/var/lib/pgadmin
     ports:
       - "8080:80"
 
@@ -33,6 +33,3 @@ services:
     ports:
       - "6789:6789"
     command: /app/run_app.sh mage start scheduler
-
-volumes:
-  pgadmin_data: {}

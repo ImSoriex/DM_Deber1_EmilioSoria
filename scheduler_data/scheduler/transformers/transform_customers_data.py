@@ -40,7 +40,7 @@ def transform(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
     # ingesta (UTC)
     df["ingested_at_utc"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    # JSON listo para jsonb
+    # transformar a JSON para jsonb
     df["payload_json"] = df["payload"].apply(
         lambda x: json.dumps(x if x is not None else {}, ensure_ascii=False)
     )
